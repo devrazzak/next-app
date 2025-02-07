@@ -2,44 +2,79 @@ import createMiddleware from 'next-intl/middleware';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-// Create the i18n middleware
 const i18nMiddleware = createMiddleware({
   locales: ['en', 'es', 'bn'],
   defaultLocale: 'en',
   localePrefix: 'always',
 });
 
-// Middleware to handle both i18n and auth
+const PUBLIC_PATHS = ['/_next', '/api', '/assets', '/favicon.ico'];
+
+const AUTH_PATHS = {
+  admin: '/auth/admin-login',
+  partner: '/auth/partner-login',
+  user: '/auth/login',
+};
+
 export async function middleware(request: NextRequest) {
-  // Get the pathname
   const pathname = request.nextUrl.pathname;
 
-  // Check if it's a protected route
-  const isProtectedRoute =
-    pathname.includes('/admin') ||
-    pathname.includes('/user') ||
-    pathname.includes('/partner');
-  const isAuthPage = pathname.includes('/auth');
+  // Skip middleware for public paths
+  if (
+    PUBLIC_PATHS.some((path) => pathname.startsWith(path)) ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next();
+  }
 
-  // Get the user token from cookies or localStorage
+  // Check current route type
+  const isAdminRoute = pathname.includes('/admin');
+  const isPartnerRoute = pathname.includes('/partner');
+  const isUserRoute = pathname.includes('/user');
+  const currentAuthPath = Object.values(AUTH_PATHS).find((path) =>
+    pathname.endsWith(path)
+  );
+
+  // Get authentication status
   const token = request.cookies.get('token')?.value;
+  const userRole = request.cookies.get('userRole')?.value;
 
-  // If it's a protected route and user is not authenticated
-  if (isProtectedRoute && !token) {
-    const loginUrl = new URL('/auth/login', request.url);
-    return NextResponse.redirect(loginUrl);
+  // Allow access to auth pages when not authenticated
+  if (!token && currentAuthPath) {
+    return i18nMiddleware(request);
   }
 
-  // If user is authenticated and trying to access login page
-  if (isAuthPage && token) {
-    const dashboardUrl = new URL('/admin', request.url);
-    return NextResponse.redirect(dashboardUrl);
+  // Redirect unauthenticated users to appropriate login
+  if (!token) {
+    if (isAdminRoute)
+      return NextResponse.redirect(new URL(AUTH_PATHS.admin, request.url));
+    if (isPartnerRoute)
+      return NextResponse.redirect(new URL(AUTH_PATHS.partner, request.url));
+    if (isUserRoute)
+      return NextResponse.redirect(new URL(AUTH_PATHS.user, request.url));
+    return i18nMiddleware(request);
   }
 
-  // Handle i18n routing
+  // Redirect authenticated users based on role
+  if (token && userRole) {
+    if (currentAuthPath) {
+      return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    }
+
+    if (isAdminRoute && userRole !== 'admin') {
+      return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    }
+    if (isPartnerRoute && userRole !== 'partner') {
+      return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    }
+    if (isUserRoute && userRole !== 'user') {
+      return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    }
+  }
+
   return i18nMiddleware(request);
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|.*\\..*).*)', '/'],
+  matcher: ['/((?!_next|api|assets).*)', '/'],
 };

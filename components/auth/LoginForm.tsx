@@ -2,31 +2,30 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
 import { loginSchema } from '@/schemas/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
+import { UserRole } from '@/types/auth';
+
+type LoginFormProps = {
+  type?: UserRole;
+};
 
 type LoginFormData = {
   email: string;
   password: string;
-  role?: string;
 };
 
-export function LoginForm() {
-  const router = useRouter();
+export function LoginForm({ type = 'user' }: LoginFormProps) {
   const { login } = useAuth();
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState<string>('');
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      role: 'user'
-    }
   });
 
   const onSubmit = async (data: LoginFormData) => {
@@ -35,10 +34,8 @@ export function LoginForm() {
       await login({
         email: data.email,
         password: data.password,
-        role: data.role as 'admin' | 'partner' | 'user'
+        role: type,
       });
-      
-      // Router.push is not needed here as the login page handles redirection
     } catch (error) {
       setError('Invalid email or password');
       console.error('Login failed:', error);
@@ -48,7 +45,10 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="email"
+          className="block text-sm font-medium text-gray-700"
+        >
           Email
         </label>
         <input
@@ -62,7 +62,10 @@ export function LoginForm() {
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="password"
+          className="block text-sm font-medium text-gray-700"
+        >
           Password
         </label>
         <input
@@ -75,23 +78,7 @@ export function LoginForm() {
         )}
       </div>
 
-      <div>
-        <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-          Role
-        </label>
-        <select
-          {...register('role')}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="user">User</option>
-          <option value="partner">Partner</option>
-          <option value="admin">Admin</option>
-        </select>
-      </div>
-
-      {error && (
-        <div className="text-red-600 text-sm">{error}</div>
-      )}
+      {error && <div className="text-red-600 text-sm">{error}</div>}
 
       <button
         type="submit"

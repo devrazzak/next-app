@@ -10,13 +10,14 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function setAuthCookie(token: string) {
-  // Set the token as an HTTP-only cookie
+function setAuthCookies(token: string, role: string) {
   document.cookie = `token=${token}; path=/; max-age=86400; samesite=strict`;
+  document.cookie = `userRole=${role}; path=/; max-age=86400; samesite=strict`;
 }
 
-function removeAuthCookie() {
+function removeAuthCookies() {
   document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+  document.cookie = 'userRole=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -29,48 +30,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    // Check local storage for existing session
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    
+
     if (storedUser && token) {
+      const user = JSON.parse(storedUser);
       setState({
-        user: JSON.parse(storedUser),
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
-      setAuthCookie(token);
+      setAuthCookies(token, user.role);
     } else {
-      setState(prev => ({ ...prev, isLoading: false }));
+      setState((prev) => ({ ...prev, isLoading: false }));
     }
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      // Simulate API call - replace with actual API call
       const mockUser: User = {
         id: '1',
         email: credentials.email,
         name: 'John Doe',
-        role: credentials.role || 'user',
+        role: credentials.role,
       };
-      
-      // Generate a mock token (in real app, this would come from your API)
-      const mockToken = btoa(JSON.stringify({ userId: mockUser.id, timestamp: Date.now() }));
 
-      // Store in localStorage
+      const mockToken = btoa(
+        JSON.stringify({
+          userId: mockUser.id,
+          role: mockUser.role,
+          timestamp: Date.now(),
+        })
+      );
+
       localStorage.setItem('user', JSON.stringify(mockUser));
       localStorage.setItem('token', mockToken);
-      
-      // Set the auth cookie
-      setAuthCookie(mockToken);
+
+      setAuthCookies(mockToken, mockUser.role);
 
       setState({
         user: mockUser,
         isAuthenticated: true,
         isLoading: false,
       });
-
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -80,18 +82,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    removeAuthCookie();
-    
+    removeAuthCookies();
+
     setState({
       user: null,
       isAuthenticated: false,
       isLoading: false,
     });
-    
+
     window.location.href = '/login';
   };
 
-  // Prevent hydration issues
   if (!mounted) {
     return null;
   }
