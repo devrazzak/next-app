@@ -57,18 +57,20 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users based on role
   if (token && userRole) {
+    const normalizedRole = userRole.toLowerCase();
+
     if (currentAuthPath) {
-      return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+      return NextResponse.redirect(new URL(`/${normalizedRole}`, request.url));
     }
 
-    if (isAdminRoute && userRole !== 'admin') {
-      return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    if (isAdminRoute && normalizedRole !== 'admin') {
+      return NextResponse.redirect(new URL(`/${normalizedRole}`, request.url));
     }
-    if (isPartnerRoute && userRole !== 'partner') {
-      return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    if (isPartnerRoute && normalizedRole !== 'partner') {
+      return NextResponse.redirect(new URL(`/${normalizedRole}`, request.url));
     }
-    if (isUserRoute && userRole !== 'user') {
-      return NextResponse.redirect(new URL(`/${userRole}`, request.url));
+    if (isUserRoute && normalizedRole !== 'user') {
+      return NextResponse.redirect(new URL(`/${normalizedRole}`, request.url));
     }
   }
 

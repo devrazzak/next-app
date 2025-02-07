@@ -1,7 +1,7 @@
 'use client';
 
+import { AuthState, LoginCredentials, User } from '@/types/auth';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User, AuthState, LoginCredentials } from '@/types/auth';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
@@ -20,6 +20,17 @@ function removeAuthCookies() {
   document.cookie = 'userRole=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
 }
 
+function getAuthCookie(name: string) {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [cookieName, cookieValue] = cookie.trim().split('=');
+    if (cookieName === name) {
+      return cookieValue;
+    }
+  }
+  return null;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [state, setState] = useState<AuthState>({
@@ -31,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
+    const token = getAuthCookie('token');
 
     if (storedUser && token) {
       const user = JSON.parse(storedUser);
@@ -52,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: '1',
         email: credentials.email,
         name: 'John Doe',
-        role: credentials.role,
+        role: credentials.role || 'user',
       };
 
       const mockToken = btoa(
@@ -64,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
 
       localStorage.setItem('user', JSON.stringify(mockUser));
-      localStorage.setItem('token', mockToken);
 
       setAuthCookies(mockToken, mockUser.role);
 
@@ -80,17 +90,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    removeAuthCookies();
+    const userRole = getAuthCookie('userRole');
+    console.log('userRole', userRole);
 
+    if (userRole === 'admin') {
+      window.location.href = '/auth/admin-login';
+    } else if (userRole === 'partner') {
+      window.location.href = '/auth/partner-login';
+    } else if (userRole === 'user') {
+      window.location.href = '/auth/login';
+    }
+
+    localStorage.removeItem('user');
+    removeAuthCookies();
     setState({
       user: null,
       isAuthenticated: false,
       isLoading: false,
     });
-
-    window.location.href = '/login';
   };
 
   if (!mounted) {
