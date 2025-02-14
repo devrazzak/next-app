@@ -7,34 +7,34 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function DashboardLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
+    const { isAuthenticated, isLoading } = useAuth();
+    const router = useRouter();
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            router.push('/login');
+        }
+    }, [isAuthenticated, isLoading, router]);
+
+    if (isLoading) {
+        return <div>Loading...</div>;
     }
-  }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+    if (!isAuthenticated) {
+        return null;
+    }
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <Header />
-      <div className="flex">
-        <AdminMenu />
-        <main className="flex-1 p-8">{children}</main>
-      </div>
-    </div>
-  );
+    return (
+        <div className="min-h-screen bg-gray-100">
+            <Header />
+            <div className="flex">
+                <AdminMenu />
+                <main className="flex-1 p-8">{children}</main>
+            </div>
+        </div>
+    );
 }
