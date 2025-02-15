@@ -1,5 +1,6 @@
 'use client';
 
+import PATHS from '@/routes/path';
 import { AuthState, LoginCredentials, User } from '@/types/auth';
 import { createContext, useContext, useEffect, useState } from 'react';
 
@@ -95,11 +96,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('userRole', userRole);
 
         if (userRole === 'admin') {
-            window.location.href = '/auth/admin-login';
+            window.location.href = PATHS.AUTH.ADMIN_LOGIN;
         } else if (userRole === 'partner') {
-            window.location.href = '/auth/partner-login';
+            window.location.href = PATHS.AUTH.PARTNER_LOGIN;
         } else if (userRole === 'user') {
-            window.location.href = '/auth/login';
+            window.location.href = PATHS.AUTH.LOGIN;
         }
 
         localStorage.removeItem('user');
